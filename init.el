@@ -37,6 +37,11 @@
 (require 'quelpa-use-package)
 
 ;; ============================================= PACKAGES CONFIG =====================================
+(use-package expand-region
+  :ensure t
+  :bind
+  ("C-c e" . er/expand-region))
+
 (use-package shell-pop
   :ensure t
   :init
@@ -44,9 +49,7 @@
   (setq shell-pop-universal-key "C-c t")
   (setq shell-pop-full-span t)
   (setq shell-pop-window-position "bottom")
-  (setq shell-pop-autocd-to-working-dir t)
-  (shell-pop-cleanup-buffer-at-process-exit t)
-  )
+  (setq shell-pop-autocd-to-working-dir t))
 
 (use-package dimmer
   :ensure t
@@ -478,10 +481,10 @@
        (centaur-tabs-get-group-name (current-buffer))))))
   
   :bind
-  ("C-<prior>" . centaur-tabs-backward)
-  ("C-<next>" . centaur-tabs-forward)
-  ("C-S-<prior>" . centaur-tabs-move-current-tab-to-left)
-  ("C-S-<next>" . centaur-tabs-move-current-tab-to-right)
+  ("C-<next>" . centaur-tabs-backward)
+  ("C-<prior>" . centaur-tabs-forward)
+  ("C-S-<next>" . centaur-tabs-move-current-tab-to-left)
+  ("C-S-<prior>" . centaur-tabs-move-current-tab-to-right)
 
   :hook
   (dired-mode . centaur-tabs-local-mode)
@@ -665,7 +668,7 @@
  '(nano-color-faded "seashell4")
  '(nano-color-subtle "light slate gray")
  '(package-selected-packages
-   '(shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
+   '(expand-region shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
  '(pulsar-delay 0.05)
  '(treemacs-width-is-initially-locked nil)
  '(yascroll:delay-to-hide 1))
