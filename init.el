@@ -37,6 +37,50 @@
 (require 'quelpa-use-package)
 
 ;; ============================================= PACKAGES CONFIG =====================================
+(use-package pos-tip
+  :ensure t)
+
+(use-package magit
+  :ensure t)
+
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode)
+  (diff-hl-flydiff-mode)
+  
+  :hook
+  (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
+  (magit-post-refresh-hook . diff-hl-magit-post-refresh)
+  (prog-mode . diff-hl-margin-mode)
+  )
+
+(use-package company
+  :ensure t
+  :after pos-tip
+  :config
+  (defun custom-prog-company-mode ()
+    (global-set-key (kbd "C-SPC") 'company-complete)
+    (company-mode))
+  :hook
+  (prog-mode . custom-prog-company-mode))
+
+(use-package company-quickhelp
+  :ensure t
+  :after company
+  :config
+  (defun custom-prog-quick-company-mode ()
+    
+    (company-quickhelp-mode))
+  :hook
+  (prog-mode . custom-prog-quick-company-mode)
+  )
+
+(use-package anzu
+  :ensure t
+  :config
+  (global-anzu-mode 1))
+
 (use-package expand-region
   :ensure t
   :bind
@@ -634,6 +678,8 @@
 (set-face-attribute 'minibuffer-prompt nil
                     :foreground "red2")
 
+(global-unset-key (kbd "C-SPC"))
+(global-set-key (kbd "C-c C-SPC") 'set-mark-command)
 (global-set-key (kbd "C-d") 'duplicate-line-or-region)
 (global-set-key (kbd "<prior>") 'scroll-half-page-down)
 (global-set-key (kbd "<next>") 'scroll-half-page-up)
@@ -655,6 +701,15 @@
    '(t magit-status-mode magit-popup-mode inf-ruby-mode mu4e-headers-mode gnus-summary-mode gnus-group-mode minimap-mode))
  '(custom-safe-themes
    '("1781e8bccbd8869472c09b744899ff4174d23e4f7517b8a6c721100288311fa5" default))
+ '(dashboard-heading-icon-height 1.0)
+ '(dashboard-path-max-length 40)
+ '(dashboard-path-style 'truncate-beginning)
+ '(diff-hl-margin-symbols-alist
+   '((insert . "|")
+     (delete . "|")
+     (change . "|")
+     (unknown . "?")
+     (ignored . "|")))
  '(highlight-symbol-idle-delay 0)
  '(minimap-always-recenter nil)
  '(minimap-disable-mode-line t)
@@ -668,8 +723,9 @@
  '(nano-color-faded "seashell4")
  '(nano-color-subtle "light slate gray")
  '(package-selected-packages
-   '(expand-region shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
- '(pulsar-delay 0.05)
+   '(diff-hl company-quickhelp company company-elisp pos-tip anzu popup-kill-ring browse-kill-ring expand-region shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
+ '(pulsar-delay 0.025)
+ '(treemacs-width 40)
  '(treemacs-width-is-initially-locked nil)
  '(yascroll:delay-to-hide 1))
 
@@ -692,17 +748,40 @@
  '(centaur-tabs-selected-modified ((t (:background "darkgoldenrod2" :foreground "white" :overline nil :underline nil :weight normal))))
  '(centaur-tabs-unselected ((t (:background "gainsboro" :foreground "#3d3c3d"))))
  '(centaur-tabs-unselected-modified ((t (:background "gainsboro" :foreground "red3" :weight normal))))
+ '(diff-hl-margin-change ((t (:foreground "light steel blue" :background "light steel blue" :inherit diff-hl-change))))
+ '(diff-hl-margin-delete ((t (:foreground "red3" :background "red3" :inherit diff-hl-delete))))
+ '(diff-hl-margin-insert ((t (:foreground "light green" :background "light green" :inherit diff-hl-insert))))
+ '(diff-hl-margin-unknown ((t (:foreground "gainsboro" :background "gainsboro" :inherit dired-ignored))))
  '(minimap-active-region-background ((t (:extend t :background "gray93"))))
  '(minimap-current-line-face ((t (:extend t :background "red1" :foreground "white"))))
  '(nano-face-faded ((t (:foreground "#B0BEC5" :weight thin))) t)
- '(pulsar-red ((t (:extend t :background "red1"))))
- '(pulsar-yellow ((t (:extend t :background "goldenrod1"))))
+ '(popup-isearch-match ((t (:background "white" :foreground "red2"))))
+ '(popup-menu-face ((t (:background "white" :inherit popup-face))))
+ '(popup-menu-mouse-face ((t (:background "gainsboro" :foreground "black"))))
+ '(popup-menu-selection-face ((t (:weight normal :foreground "white" :background "red2" :inherit default))))
+ '(popup-menu-summary-face ((t (:background "white" :inherit popup-summary-face))))
+ '(popup-scroll-bar-background-face ((t nil)))
+ '(popup-scroll-bar-foreground-face ((t nil)))
+ '(popup-summary-face ((t (:foreground "dimgray" :background "white" :inherit popup-face))))
+ '(popup-tip-face ((t (:background "red2" :foreground "white" :slant italic))))
+ '(pulsar-generic ((t (:extend t :background "gray" :foreground "white" :weight normal))))
+ '(pulsar-green ((t (:extend t :background "green2" :foreground "white" :weight normal))))
+ '(pulsar-red ((t (:extend t :background "red1" :foreground "white" :weight normal))))
+ '(pulsar-yellow ((t (:extend t :background "goldenrod1" :foreground "white" :weight normal))))
  '(pulse-highlight-start-face ((t (:background "gray"))))
- '(treemacs-git-ignored-face ((t (:inherit font-lock-comment-face :background "gray95"))))
+ '(tooltip ((t (:height 0.75 :box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "black" :background "white smoke" :inherit variable-pitch))))
+ '(treemacs-directory-collapsed-face ((t (:weight light :foreground "black" :inherit treemacs-directory-face))))
+ '(treemacs-directory-face ((t (:weight light :foreground "black" :inherit font-lock-function-name-face))))
+ '(treemacs-file-face ((t (:foreground "gray20" :inherit default))))
+ '(treemacs-git-added-face ((t (:foreground "green3" :inherit font-lock-type-face))))
+ '(treemacs-git-ignored-face ((t (:weight thin :foreground "dim gray" :inherit font-lock-comment-face))))
  '(treemacs-git-modified-face ((t (:foreground "dark slate blue" :inherit font-lock-variable-name-face))))
+ '(treemacs-git-renamed-face ((t (:weight normal :foreground "DarkSlateBlue" :inherit font-lock-doc-face))))
+ '(treemacs-git-untracked-face ((t (:weight normal :foreground "red2" :inherit font-lock-string-face))))
  '(treemacs-marked-file-face ((t (:background "red3" :foreground "white" :weight bold))))
  '(treemacs-nerd-icons-file-face ((t (:inherit nerd-icons-dsilver))))
  '(treemacs-nerd-icons-root-face ((t (:inherit nerd-icons-silver))))
- '(treemacs-root-face ((t (:height 1.2 :weight bold :box (:line-width (1 . 1) :color "grey75" :style flat-button) :foreground "red2" :inherit font-lock-constant-face))))
+ '(treemacs-root-face ((t (:height 1.0 :weight bold :box (:line-width (1 . 1) :color "grey75" :style flat-button) :foreground "black" :inherit font-lock-constant-face))))
+ '(treemacs-term-node-face ((t (:foreground "SteelBlue4" :extend t :inherit font-lock-string-face))))
  '(yascroll:thumb-fringe ((t (:background "gray24" :foreground "gray24"))))
  '(yascroll:thumb-text-area ((t (:background "gray24")))))
