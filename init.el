@@ -53,6 +53,7 @@
   (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
   (magit-post-refresh-hook . diff-hl-magit-post-refresh)
   (prog-mode . diff-hl-margin-mode)
+  (text-mode . diff-hl-margin-mode)
   )
 
 (use-package company
@@ -201,9 +202,36 @@
 (use-package pulsar
   :ensure t
   :config
-  (defun my-window-scroll-function
-      (window display-start)
-    (pulsar-pulse-line))
+  
+  (defun scroll-half-page-down ()
+    "scroll down half the page"
+    (interactive)
+    (scroll-down (/ (window-body-height) 10))
+    (pulsar-pulse-line-red))
+
+  (defun scroll-half-page-up ()
+    "scroll up half the page"
+    (interactive)
+    (scroll-up (/ (window-body-height) 10))
+    (pulsar-pulse-line-red))
+
+  (defun scroll-full-page-down ()
+    "scroll full the page down"
+    (interactive)
+    (scroll-down)
+    (pulsar-pulse-line-red))
+
+  (defun scroll-full-page-up ()
+    "scroll full the page down up"
+    (interactive)
+    (scroll-up)
+    (pulsar-pulse-line-red))
+  
+  (global-set-key (kbd "<prior>") 'scroll-half-page-down)
+  (global-set-key (kbd "<next>") 'scroll-half-page-up)
+  (global-set-key (kbd "s-<prior>") 'scroll-full-page-down)
+  (global-set-key (kbd "s-<next>") 'scroll-full-page-up)
+  
   (add-hook 'next-error-hook
             #'pulsar-pulse-line-red)
   (setq pulsar-pulse t)
@@ -358,6 +386,7 @@
 (use-package yascroll
   :ensure t
   :hook
+  (text-mode . yascroll-bar-mode)
   (prog-mode . yascroll-bar-mode)
   (custom-mode . yascroll-bar-mode)
   (dired-mode . yascroll-bar-mode)
@@ -369,9 +398,10 @@
 
 (use-package minimap
   :ensure t
+  :if (display-graphic-p) 
   :config
-  (when (display-graphic-p)
-    (minimap-mode)))
+  (minimap-mode)
+  )
 
 (use-package drag-stuff
   :ensure t
@@ -596,6 +626,272 @@
 
 
 ;; ================================================ custom config ================================================
+(require 'cl-lib)
+
+(defvar centuri--init-window nil)
+(defvar centuri--init-margins nil)
+(defvar centuri--init-buffer nil)
+
+(defcustom centuri--min-size 80
+  "Mininum windows size to be qualified for centering"
+  :group 'centuri
+  :type 'integer)
+
+(defcustom centuri--max-size 100
+  "Maximum window size after centering"
+  :group 'centuri
+  :type 'integer)
+
+(defcustom centuri--single-window nil
+  "Activate only if this is only window"
+  :group 'centuri
+  :type 'boolean)
+
+(defcustom centuri--center-absolute t
+  "Should center according to absolute or realtive position"
+  :group 'centuri
+  :type 'boolean)
+
+(defcustom centuri--max-scale 0.75
+  "Scale factor when max-size is not defined"
+  :group 'centuri
+  :type 'float)
+
+(defcustom centuri--margin-left 0
+  "Extra left margin added after centering"
+  :group 'centuri
+  :type 'integer)
+
+(defcustom centuri--margin-right 0
+  "Extra right margin added after centering"
+  :group 'centuri
+  :type 'integer)
+
+(defcustom centuri--margin-left-factor 1.0
+  "Extra left maring scale factor applied after centering"
+  :group 'centuri
+  :type 'float)
+
+(defcustom centuri--margin-right-factor 1.0
+  "Extra right maring scale factor applied after centering"
+  :group 'centuri
+  :type 'float)
+
+(defcustom centuri--ignored '(" *MINIMAP*")
+  "List of ignored buffers"
+  :group 'centuri)
+
+(defun centuri-positive-p (val)
+  "Check if VAL is not nil and a positive number"
+  (and val (numberp val) (> val 0)))
+
+(defun centuri-horizontal-windows ()
+  "Returns list of widnows splitted horizontally"
+  ;; Looks like it works
+  ;; (window-list)
+  (seq-filter
+   (lambda (w)
+     (and (>= (window-top-line) (window-top-line w))
+          (not (eq w (selected-window)))))
+     (window-list)))
+
+(defun centuri-window-names ()
+  "Get buffer name of each window"
+  (mapcar (lambda (window)
+            (buffer-name (window-buffer window)))
+          (centuri-horizontal-windows)))
+
+(defun centuri-find-self ()
+  "Find itslef windows by buffer name"
+  (seq-filter
+   (lambda (window)
+     (with-selected-window window
+       (string= (buffer-name (window-buffer window))
+                centuri--init-buffer)))
+   (window-list)))
+
+(defun centuri-check-for-many ()
+  "Check if there is more then one non-ingored window"
+  (length> (cl-set-difference
+            (centuri-window-names)
+            centuri--ignored
+            :test 'string=)
+           0))
+
+(defun centuri-calc-desired-width ()
+  "Returns desired width if not nil, otherwise calculates it"
+  (if (centuri-positive-p centuri--max-size)
+      centuri--max-size
+    (* centuri--max-scale (window-width))))
+
+(defun centuri-calc-margin-left (margin)
+  "Calculate left margin, for internal usage only"
+  (let ((m (if centuri--margin-left centuri--margin-left 0))
+        (s (if centuri--margin-left-factor centuri--margin-left-factor 1.0)))
+    (if margin
+        (truncate (* (+ margin m) s))
+        nil)))
+
+(defun centuri-calc-margin-right (margin)
+  "Calculate right margin, for internal usage only"
+  (let ((m (if centuri--margin-right centuri--margin-right 0))
+        (s (if centuri--margin-right-factor centuri--margin-right-factor 1.0)))
+    (if margin
+        (truncate (* (+ margin m) s))
+        nil)))
+
+(defun centuri-center-relative ()
+  "Centers window content using its own windows size"
+  (let* ((desired (centuri-calc-desired-width))
+         (margin (truncate (* 0.5 (- (window-width) desired)))))
+    (set-window-margins (selected-window)
+                        (centuri-calc-margin-left margin)
+                        (centuri-calc-margin-right margin)
+                        )))
+
+(defun centuri-center-absolute ()
+  "Centers window content using frame size"
+  (let* ((desired (centuri-calc-desired-width))
+         (frame-w (frame-width))
+         (split-w (window-width))
+         (padding (window-left-column))
+         (right-p (+ padding split-w))
+         (margin  (truncate (* 0.5 (- frame-w desired))))
+         ;; (left    (truncate (max 1 (- margin (* 0.5 padding)))))
+         ;; (right   (truncate (max 0 (- margin (- frame-w (* 0.5 right-p))))))
+         (left    (truncate (max 1 (- margin padding))))
+         (right   (truncate (max 0 (- margin (- frame-w right-p))))))
+    (when (> margin 0)
+      (set-window-margins (selected-window)
+                          (centuri-calc-margin-left left)
+                          (centuri-calc-margin-right right)
+                          ))))
+
+(defun centuri-center-w ()
+  "Centerize current widnow, only for internal useage"
+  (when (and centuri-mode
+             centuri--init-buffer
+             centuri--init-window
+             (eq (buffer-name (window-buffer (selected-window)))
+                 centuri--init-buffer)
+             (>= (window-width) centuri--min-size)
+             (>= (window-width) centuri--max-size))    
+    (if centuri--center-absolute
+      (centuri-center-absolute)
+      (centuri-center-relative))))
+
+(defun centuri-restore-w ()
+  "Restore window parameters"  
+  (when (and centuri--init-buffer
+             centuri--init-window
+             (eq (buffer-name (window-buffer (selected-window)))
+                 centuri--init-buffer))
+    (set-window-margins
+       (selected-window)
+       (car centuri--init-margins)
+       (cdr centuri--init-margins))))
+
+(defun centuri--hook-update (&optional arg)
+  "Hook function for buffer/window update events (but cooler)"
+  (let* ((self (centuri-find-self)))
+    (dolist (w self)
+      (with-selected-window w
+        (centuri-restore-w)
+        (centuri-center-w)))))
+
+(defun centuri-enable ()
+  "Private function for internal usage only"
+  (when (not centuri-mode)
+    (error "centuri-mode disabled"))
+  
+  (make-local-variable 'centuri--init-window)
+  (make-local-variable 'centuri--init-margins)
+  (make-local-variable 'centuri--init-buffer)
+  
+  (make-local-variable 'centuri--margin-left)
+  (make-local-variable 'centuri--margin-right)
+  (make-local-variable 'centuri--margin-left-factor)
+  (make-local-variable 'centuri--margin-right-factor)
+  
+  (setq centuri--init-margins (window-margins))
+  (setq centuri--init-window (selected-window))
+  (setq centuri--init-buffer (buffer-name))
+
+  (add-hook 'window-size-change-functions
+            'centuri--hook-update
+            nil
+            t)
+
+  (centuri-mid)
+  (message "Enabled centuri mode"))
+
+(defun centuri-disable ()
+  "Private function for internal useage only"
+  (centuri-restore-w)
+  (remove-hook 'window-size-change-functions
+               'centuri--hook-update
+               t)
+  (message "Disabled centuri mode"))
+
+(define-minor-mode centuri-mode
+  "Minor mode that centeres window content"
+  :lighter " CEN"
+  :init-value nil
+  :global nil
+  (if (symbol-value 'centuri-mode)
+      (centuri-enable)
+    (centuri-disable)))
+
+;; interactive functions
+(defun centuri-mid ()
+  "Center current window"
+  (interactive)
+  (cond ((< (window-width) centuri--min-size)
+         (message "Window is too small to centerize (min-size)"))
+        ((< (window-width) centuri--max-size)
+         (message "Window is too small co centerize (max-size)"))
+        ((and centuri--single-window (centuri-check-for-many))
+         (message "Not a single window"))
+        (centuri--center-absolute
+         (centuri-center-absolute))
+        (t (centuri-center-relative))))
+
+(defun centuri-set-margin-left (value)
+  "Set extra left margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-left value)))
+
+(defun centuri-set-margin-right (value)
+  "Set extra right margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-right value)))
+
+(defun centuri-inc-margin-left ()
+  "Increment extra left margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-left (+ centuri--margin-left 1))))
+
+(defun centuri-inc-margin-right ()
+  "Increment extra right margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-right (+ centuri--margin-right 1))))
+
+(defun centuri-dec-margin-left ()
+  "Decrement extra left margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-left (max 1 (- centuri--margin-left 1)))))
+
+(defun centuri-dec-margin-right ()
+  "Decrement extra right margin"
+  (interactive)
+  (when centuri-mode
+    (setq centuri--margin-right (max 0 (- centuri--margin-right 1)))))
+
 (defun duplicate-line-or-region (&optional n)
   "duplicate current line, or region if active.
    with argument n, make n copies.
@@ -617,18 +913,6 @@
             (comment-region (line-beginning-position) (line-end-position)))
         (forward-line 1)
         (forward-char pos)))))
-
-(defun scroll-half-page-down ()
-  "scroll down half the page"
-  (interactive)
-  (scroll-down (/ (window-body-height) 10))
-  (pulsar-pulse-line-red))
-
-(defun scroll-half-page-up ()
-  "scroll up half the page"
-  (interactive)
-  (scroll-up (/ (window-body-height) 10))
-  (pulsar-pulse-line-red))
 
 (defun custom-prettify-mode-hook ()
   (setq prettify-symbols-alist
@@ -679,12 +963,12 @@
                     :foreground "red2")
 
 (global-unset-key (kbd "C-SPC"))
+(global-unset-key (kbd "C-x C-SPC"))
+
+(global-set-key (kbd "C-x C-SPC") 'rectangle-mark-mode)
+(global-set-key (kbd "C-c SPC") 'set-mark-command)
 (global-set-key (kbd "C-c C-SPC") 'set-mark-command)
 (global-set-key (kbd "C-d") 'duplicate-line-or-region)
-(global-set-key (kbd "<prior>") 'scroll-half-page-down)
-(global-set-key (kbd "<next>") 'scroll-half-page-up)
-(global-set-key (kbd "s-<prior>") 'scroll-down)
-(global-set-key (kbd "s-<next>") 'scroll-up)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 ;; ========================================================= generated ======================================================
@@ -704,6 +988,7 @@
  '(dashboard-heading-icon-height 1.0)
  '(dashboard-path-max-length 40)
  '(dashboard-path-style 'truncate-beginning)
+ '(diff-hl-draw-borders nil)
  '(diff-hl-margin-symbols-alist
    '((insert . "|")
      (delete . "|")
@@ -716,6 +1001,7 @@
  '(minimap-hide-cursor t)
  '(minimap-hide-fringes t)
  '(minimap-highlight-line t)
+ '(minimap-major-modes '(prog-mode text-mode))
  '(minimap-minimum-width 35)
  '(minimap-recenter-type 'relative)
  '(minimap-update-delay 0.025)
@@ -723,7 +1009,7 @@
  '(nano-color-faded "seashell4")
  '(nano-color-subtle "light slate gray")
  '(package-selected-packages
-   '(diff-hl company-quickhelp company company-elisp pos-tip anzu popup-kill-ring browse-kill-ring expand-region shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
+   '(centered-window diff-hl company-quickhelp company company-elisp pos-tip anzu popup-kill-ring browse-kill-ring expand-region shell-pop dimmer vertico-posframe vertico treemacs-icons-dired treemacs-magit treemacs-projectile nano-modeline projectile nerd-icons-dired nerd-icons-ibuffer nerd-icons-completion nerd-icons dashboard smartparens which-key zzz-to-char goto-line-preview windresize auto-highlight-symbol highlight-symbol symbol-overlay mwim pulsar yascroll magit popup rainbow-delimiters god-mode minimap drag-stuff popwin ace-jump-mode shackle goggles vundo centaur-tabs use-package beacon focus treemacs dirvish))
  '(pulsar-delay 0.025)
  '(treemacs-width 40)
  '(treemacs-width-is-initially-locked nil)
@@ -748,10 +1034,10 @@
  '(centaur-tabs-selected-modified ((t (:background "darkgoldenrod2" :foreground "white" :overline nil :underline nil :weight normal))))
  '(centaur-tabs-unselected ((t (:background "gainsboro" :foreground "#3d3c3d"))))
  '(centaur-tabs-unselected-modified ((t (:background "gainsboro" :foreground "red3" :weight normal))))
- '(diff-hl-margin-change ((t (:foreground "light steel blue" :background "light steel blue" :inherit diff-hl-change))))
- '(diff-hl-margin-delete ((t (:foreground "red3" :background "red3" :inherit diff-hl-delete))))
- '(diff-hl-margin-insert ((t (:foreground "light green" :background "light green" :inherit diff-hl-insert))))
- '(diff-hl-margin-unknown ((t (:foreground "gainsboro" :background "gainsboro" :inherit dired-ignored))))
+ '(diff-hl-margin-change ((t (:foreground "RoyalBlue3" :background "RoyalBlue3" :extend nil :inherit diff-hl-change))))
+ '(diff-hl-margin-delete ((t (:foreground "red3" :background "red3" :extend nil :inherit diff-hl-delete))))
+ '(diff-hl-margin-insert ((t (:foreground "green3" :background "green3" :extend nil :inherit diff-hl-insert))))
+ '(diff-hl-margin-unknown ((t (:foreground "gainsboro" :background "gainsboro" :extend nil :inherit dired-ignored))))
  '(minimap-active-region-background ((t (:extend t :background "gray93"))))
  '(minimap-current-line-face ((t (:extend t :background "red1" :foreground "white"))))
  '(nano-face-faded ((t (:foreground "#B0BEC5" :weight thin))) t)
