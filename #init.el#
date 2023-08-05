@@ -124,7 +124,6 @@
   (vertico-indexed-mode)
 
   :config
-  (setq vertico-posframe-width 110)
   (defun my-vertico-select (index)
     (interactive)
     (vertico-next (if (string= vertico-preselect 'prompt) (+ index 1) index))
