@@ -37,6 +37,22 @@
 (require 'quelpa-use-package)
 
 ;; ============================================= PACKAGES CONFIG =====================================
+(use-package elisp-mode
+  :ensure nil ; this is built-in package, no need to install it
+  :init
+  (global-unset-key (kbd "C-M-l"))
+  :config
+  (defun reformat-elisp-buffer ()
+    (interactive)
+    (save-excursion
+      (indent-region (point-min) (point-max))
+      )
+
+    )
+  (define-key emacs-lisp-mode-map
+    (kbd "C-M-l")
+    'reformat-elisp-buffer))
+
 (use-package centuri
   :ensure t
   :quelpa (centuri :fetcher github
@@ -331,11 +347,11 @@
   (setq dashboard-set-footer nil)
 
   (setq dashboard-items '((recents  . 5)
-                        (projects . 5)
-                        (bookmarks . 5)
-                        ;; (agenda . 5)
-                        ;; (registers . 5)
-			))
+                          (projects . 5)
+                          (bookmarks . 5)
+                          ;; (agenda . 5)
+                          ;; (registers . 5)
+			              ))
   
   :config
   (dashboard-setup-startup-hook))
@@ -428,7 +444,7 @@
   :config
   (setq shackle-rules
         '((compilation-mode :noselect t)
-          ;("*vundo tree*" :select t :popup t :align below :ratio 0.33)
+                                        ;("*vundo tree*" :select t :popup t :align below :ratio 0.33)
           ))
   (shackle-mode 1))
 
@@ -454,8 +470,8 @@
   :config
 
   (set-face-attribute 'centaur-tabs-default nil
-                    :foreground "3d3c3d"
-                    :background "white")
+                      :foreground "3d3c3d"
+                      :background "white")
   
   (setq centaur-tabs-height 31
         centaur-tabs-icon-type 'nerd-icons
@@ -525,13 +541,13 @@
        "Dashboard")
       
       ((memq major-mode '(magit-process-mode
-                              magit-status-mode
-                              magit-diff-mode
-                              magit-log-mode
-                              magit-file-mode
-                              magit-blob-mode
-                              magit-blame-mode
-                              ))
+                          magit-status-mode
+                          magit-diff-mode
+                          magit-log-mode
+                          magit-file-mode
+                          magit-blob-mode
+                          magit-blame-mode
+                          ))
        "Magit")
 
       ((derived-mode-p 'prog-mode)
@@ -692,9 +708,6 @@
 
 (add-hook 'prog-mode-hook
           'hl-line-mode)
-
-;; (add-hook 'minimap-mode-hook
-;;           (lambda () (setq mode-line-format nil)))
 
 (set-face-attribute 'region nil
                     :foreground "white"
