@@ -420,8 +420,13 @@
 (use-package 
   drag-stuff 
   :ensure t 
+  :after auto-highlight-symbol 
   :config (drag-stuff-global-mode t) 
-  (drag-stuff-define-keys))
+  (drag-stuff-define-keys) 
+  (global-set-key (kbd "M-<right>") 'forward-sexp) 
+  (global-set-key (kbd "M-<left>") 'backward-sexp) 
+  (define-key drag-stuff-mode-map (drag-stuff--kbd 'left) 'backward-sexp) 
+  (define-key drag-stuff-mode-map (drag-stuff--kbd 'right) 'forward-sexp))
 
 (use-package 
   popwin 
