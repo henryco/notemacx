@@ -339,8 +339,7 @@
            :fetcher git 
            :url https://github.com/henryco/welcome-dashboard.git 
            :upgrade t) 
-  :config (setq welcome-dashboard-latitude  52.2313) 
-  (setq welcome-dashboard-longitude 21.0055) 
+  :config
   (setq welcome-dashboard-use-nerd-icons t) 
   (setq welcome-dashboard-use-fahrenheit nil) 
   (setq welcome-dashboard-image-file "~/.notemacx/lisp_logo.png") 
