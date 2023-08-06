@@ -25,10 +25,12 @@
   (package-install 'use-package))
 
 (unless (package-installed-p 'quelpa) 
+  (setq quelpa-update-melpa-p nil) 
   (package-refresh-contents) 
   (package-install 'quelpa))
 
 (unless (package-installed-p 'quelpa-use-package) 
+  (setq quelpa-update-melpa-p nil) 
   (package-refresh-contents) 
   (package-install 'quelpa-use-package))
 
@@ -329,28 +331,23 @@
   :ensure t)
 
 (use-package 
-  dashboard 
+  welcome-dashboard 
   :ensure t 
-  :after nerd-icons 
-  :init (setq dashboard-banner-logo-title
-              "Lasciate ogne speranza, voi ch'intrate") 
-  (setq dashboard-startup-banner "~/.notemacx/lisp_logo.png") 
-  (setq dashboard-display-icons-p t) 
-  (setq dashboard-icon-type 'nerd-icons) 
-  (setq dashboard-set-heading-icons t) 
-  (setq dashboard-set-file-icons t) 
-  (setq dashboard-set-navigator t) 
-  (setq dashboard-set-init-info t) 
-  (setq dashboard-center-content t) 
-  (setq dashboard-show-shortcuts t) 
-  (setq dashboard-set-footer nil) 
-  (setq dashboard-items '((recents  . 5) 
-                          ;; (projects . 5) 
-                          (bookmarks . 5)
-                          ;; (agenda . 5)
-                          ;; (registers . 5)
-			              )) 
-  :config (dashboard-setup-startup-hook))
+  :quelpa (welcome-dashboard
+           ;; :fetcher github
+           ;; :repo konrad1977/welcome-dashboard
+           :fetcher git 
+           :url https://github.com/henryco/welcome-dashboard.git 
+           :upgrade t) 
+  :config (setq welcome-dashboard-latitude  52.2313) 
+  (setq welcome-dashboard-longitude 21.0055) 
+  (setq welcome-dashboard-use-nerd-icons t) 
+  (setq welcome-dashboard-use-fahrenheit nil) 
+  (setq welcome-dashboard-image-file "~/.notemacx/lisp_logo.png") 
+  (setq welcome-dashboard-image-width 200) 
+  (setq welcome-dashboard-image-height 200) 
+  (setq welcome-dashboard-title "Lasciate ogne speranza, voi ch'intrate") 
+  (welcome-dashboard-create-welcome-hook))
 
 (use-package 
   smartparens 
@@ -410,7 +407,6 @@
   (prog-mode . yascroll-bar-mode) 
   (custom-mode . yascroll-bar-mode) 
   (dired-mode . yascroll-bar-mode) 
-  (dashboard-mode . yascroll-bar-mode) 
   (term-mode . yascroll-bar-mode) 
   (calendar-mode . yascroll-bar-mode) 
   (org-agenda-mode . yascroll-bar-mode))
@@ -504,7 +500,8 @@
        (string-prefix-p "*Ibuffer confirmation" name) 
        (string-prefix-p "*Colors*" name) 
        (string-prefix-p " *minimap*" name) 
-       (string-prefix-p "*dashboard" name)
+       (string-prefix-p "*dashboard" name) 
+       (string-prefix-p "*welcome*" name)
 
        ;; is not magit buffer.
        (and (string-prefix-p "magit" name) 
@@ -517,6 +514,7 @@
       Other buffer group by `centaur-tabs-get-group-name' with project name."
     (list (cond ((string-prefix-p "*shell" (buffer-name)) "Shell") 
                 ((string-prefix-p "*dashboard" (buffer-name)) "Dashboard") 
+                ((string-prefix-p "*welcome" (buffer-name)) "Dashboard") 
                 ((memq major-mode '(magit-process-mode magit-status-mode
                                                        magit-diff-mode
                                                        magit-log-mode
@@ -540,7 +538,7 @@
   ("C-S-<next>" . centaur-tabs-move-current-tab-to-left) 
   ("C-S-<prior>" . centaur-tabs-move-current-tab-to-right) 
   :hook (dired-mode . centaur-tabs-local-mode) 
-  (dashboard-mode . centaur-tabs-local-mode) 
+  (welcome-dashboard-mode . centaur-tabs-local-mode) 
   (term-mode . centaur-tabs-local-mode) 
   (calendar-mode . centaur-tabs-local-mode) 
   (org-agenda-mode . centaur-tabs-local-mode))
@@ -715,29 +713,38 @@
  '(mode-line-in-non-selected-windows nil) 
  '(nano-color-faded "seashell4") 
  '(nano-color-subtle "light slate gray") 
- '(package-selected-packages '(elisp-format diff-hl company-quickhelp company
-                                            company-elisp pos-tip anzu
-                                            popup-kill-ring browse-kill-ring
-                                            expand-region shell-pop dimmer
-                                            vertico-posframe vertico
-                                            treemacs-icons-dired treemacs-magit
-                                            treemacs-projectile nano-modeline
-                                            projectile nerd-icons-dired
-                                            nerd-icons-ibuffer
-                                            nerd-icons-completion nerd-icons
-                                            dashboard smartparens which-key
-                                            zzz-to-char goto-line-preview
-                                            windresize auto-highlight-symbol
-                                            highlight-symbol symbol-overlay mwim
-                                            pulsar yascroll magit popup
-                                            rainbow-delimiters god-mode minimap
-                                            drag-stuff popwin ace-jump-mode
-                                            shackle goggles vundo centaur-tabs
-                                            use-package beacon focus treemacs
-                                            dirvish)) 
+ '(package-selected-packages '(welcome-dashboard elisp-format diff-hl
+                                                 company-quickhelp company
+                                                 company-elisp pos-tip anzu
+                                                 popup-kill-ring
+                                                 browse-kill-ring expand-region
+                                                 shell-pop dimmer
+                                                 vertico-posframe vertico
+                                                 treemacs-icons-dired
+                                                 treemacs-magit
+                                                 treemacs-projectile
+                                                 nano-modeline projectile
+                                                 nerd-icons-dired
+                                                 nerd-icons-ibuffer
+                                                 nerd-icons-completion
+                                                 nerd-icons smartparens
+                                                 which-key zzz-to-char
+                                                 goto-line-preview windresize
+                                                 auto-highlight-symbol
+                                                 highlight-symbol symbol-overlay
+                                                 mwim pulsar yascroll magit
+                                                 popup rainbow-delimiters
+                                                 god-mode minimap drag-stuff
+                                                 popwin ace-jump-mode shackle
+                                                 goggles vundo centaur-tabs
+                                                 use-package beacon focus
+                                                 treemacs dirvish)) 
  '(pulsar-delay 0.025) 
  '(treemacs-width 40) 
  '(treemacs-width-is-initially-locked nil) 
+ '(welcome-dashboard-aux-icon-height 0.75) 
+ '(welcome-dashboard-min-left-padding 10) 
+ '(welcome-dashboard-path-max-length 35) 
  '(yascroll:delay-to-hide 1))
 
 (custom-set-faces
@@ -951,6 +958,65 @@
                              (:foreground "SteelBlue4" 
                                           :extend t 
                                           :inherit font-lock-string-face)))) 
+ '(welcome-dashboard-filename-face ((t 
+                                     (:foreground "black" 
+                                                  :weight normal 
+                                                  :height 110)))) 
+ '(welcome-dashboard-info-face ((t 
+                                 (:foreground "DimGray" 
+                                              :weight normal 
+                                              :height 110)))) 
+ '(welcome-dashboard-path-face ((t 
+                                 (:foreground "dark gray" 
+                                              :slant normal 
+                                              :weight normal 
+                                              :height 110)))) 
+ '(welcome-dashboard-project-face ((t 
+                                    (:foreground "#f38ba8" 
+                                                 :weight normal)))) 
+ '(welcome-dashboard-shortcut-face ((t 
+                                     (:foreground "azure4" 
+                                                  :weight ultra-bold 
+                                                  :height 100)))) 
+ '(welcome-dashboard-shortcut-todo-face ((t 
+                                          (:foreground "#abd47c" 
+                                                       :weight normal 
+                                                       :height 110)))) 
+ '(welcome-dashboard-startup-time-face ((t 
+                                         (:foreground "dim gray" 
+                                                      :weight normal 
+                                                      :height 110)))) 
+ '(welcome-dashboard-subtitle-face ((t 
+                                     (:foreground "red2" 
+                                                  :weight normal 
+                                                  :height 110)))) 
+ '(welcome-dashboard-text-info-face ((t 
+                                      (:foreground "dark slate gray" 
+                                                   :weight normal 
+                                                   :height 110)))) 
+ '(welcome-dashboard-time-face ((t 
+                                 (:foreground "black" 
+                                              :weight normal 
+                                              :height 110)))) 
+ '(welcome-dashboard-title-face ((t 
+                                  (:foreground "black" 
+                                               :weight normal 
+                                               :height 110)))) 
+ '(welcome-dashboard-todo-type-face ((t 
+                                      (:foreground "#585b70" 
+                                                   :weight normal 
+                                                   :height 110)))) 
+ '(welcome-dashboard-weather-description-face ((t 
+                                                (:foreground "dim gray" 
+                                                             :weight normal 
+                                                             :height 110)))) 
+ '(welcome-dashboard-weather-icon-face ((t 
+                                         (:weight normal 
+                                                  :height 110)))) 
+ '(welcome-dashboard-weather-temperature-face ((t 
+                                                (:foreground "DimGray" 
+                                                             :weight normal 
+                                                             :height 110)))) 
  '(yascroll:thumb-fringe ((t 
                            (:background "gray24" 
                                         :foreground "gray24")))) 
